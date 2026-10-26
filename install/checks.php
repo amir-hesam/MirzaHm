@@ -495,6 +495,7 @@ function mirza_install_required_files(): array
         'panels/Api/Marzban.php' => 'پنل مرزبان',
         'panels/Api/marzneshin.php' => 'پنل مرزنشین',
         'panels/Api/hiddify.php' => 'پنل هیدیفای',
+        'panels/Api/hmpanel.php' => 'پنل HMPanel',
         'panels/Api/x-ui_single.php' => 'پنل X-UI',
         'panels/Api/mikrotik.php' => 'پنل میکروتیک',
         'panels/Api/mirza_agent.php' => 'ایجنت میرزا',

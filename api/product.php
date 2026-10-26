@@ -315,6 +315,16 @@ function prod_set_inbounds(array $data, string $method): void
         if ($user_data == null)
             sendJsonResponse(false, "User Not Found", [], 200);
         $datainbound = $user_data['inboundId'];
+    } elseif ($panel['type'] == "hmpanel") {
+        $inbounds_result = hmpanel_get_inbounds($panel);
+        if (!empty($inbounds_result['error']))
+            sendJsonResponse(false, $inbounds_result['error'], [], 200);
+        if (!empty($inbounds_result['status']) && $inbounds_result['status'] != 200)
+            sendJsonResponse(false, $inbounds_result['status'], [], 200);
+        $available_inbounds = hmpanel_decode_inbounds($inbounds_result);
+        if (empty($available_inbounds))
+            sendJsonResponse(false, "inbound_not_found", [], 200);
+        $datainbound = json_encode(hmpanel_select_inbound_ids($available_inbounds, $data['input']));
     } elseif ($panel['type'] == "ibsng" || $panel['type'] == "mikrotik") {
         $datainbound = $data['input'];
     } else {

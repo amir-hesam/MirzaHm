@@ -756,7 +756,7 @@ if ($datain == "paygwback") {
 } elseif ($text == $textbotlang['Admin']['btnKeyboard']['addPanel'] && $adminrulecheck['rule'] == "administrator") {
     sendmessage($from_id, $textbotlang['Admin']['managepanel']['Inbound']['getPanelType'], $keyboardtypepanel, 'HTML');
 } elseif (preg_match('/^typepanel#(.+)$/', $datain, $dataget) && $adminrulecheck['rule'] == "administrator") {
-    if (!in_array($dataget[1], ["marzban", "marzneshin", "pasarguard", "mirza_agent", "x-ui_single", "Manualsale", "hiddify", "WGDashboard", "ibsng", "mikrotik", "rebecca", "nexora", "wg_mate"], true)) {
+    if (!in_array($dataget[1], ["marzban", "marzneshin", "pasarguard", "mirza_agent", "x-ui_single", "Manualsale", "hiddify", "hmpanel", "WGDashboard", "ibsng", "mikrotik", "rebecca", "nexora", "wg_mate"], true)) {
         return;
     }
     deletemessage($from_id, $message_id);
@@ -799,7 +799,7 @@ if ($datain == "paygwback") {
         savedata("save", "username", "null");
         savedata("save", "password", "null");
         finishAddPanel();
-    } elseif (in_array($paneltype, ["WGDashboard", "x-ui_single", "mirza_agent", "rebecca", "nexora", "wg_mate"], true)) {
+    } elseif (in_array($paneltype, ["WGDashboard", "x-ui_single", "hmpanel", "mirza_agent", "rebecca", "nexora", "wg_mate"], true)) {
         savedata("save", "username", "null");
         sendmessage($from_id, $textbotlang['Admin']['agentbot']['askToken'], $backadmin, 'HTML');
         step('add_password_panel', $from_id);
@@ -2686,6 +2686,27 @@ elseif ($datain == "systemsms") {
         } else {
             $text_marzban = !empty($Check_connection['error']) ? panelErrorText($Check_connection['error']) : $textbotlang['Admin']['managepanel']['errorStatusPanel'] . json_encode($Check_connection);
             sendmessage($from_id, $text_marzban, $panelOptions['rebecca'], 'HTML');
+        }
+    } elseif ($marzban_list_get['type'] == "hmpanel") {
+        $Check_connection = hmpanel_get_inbounds($marzban_list_get);
+        if (empty($Check_connection['error']) && (empty($Check_connection['status']) || $Check_connection['status'] < 400)) {
+            $ListSell = $pdo->prepare("SELECT COUNT(*) FROM invoice WHERE (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND Service_location = ? AND name_product != ?");
+            $ListSell->bindValue(1, $marzban_list_get['name_panel'], PDO::PARAM_STR);
+            $ListSell->bindValue(2, $textbotlang['common']['labels']['testServiceName'], PDO::PARAM_STR);
+            $ListSell->execute();
+            $ListSell = number_format($ListSell->fetch(PDO::FETCH_ASSOC)['COUNT(*)'] ?? 0);
+            $ListSellSum = $pdo->prepare("SELECT SUM(price_product) FROM invoice WHERE (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND Service_location = ? AND name_product != ?");
+            $ListSellSum->bindValue(1, $marzban_list_get['name_panel'], PDO::PARAM_STR);
+            $ListSellSum->bindValue(2, $textbotlang['common']['labels']['testServiceName'], PDO::PARAM_STR);
+            $ListSellSum->execute();
+            $ListSellSUM = number_format($ListSellSum->fetch(PDO::FETCH_ASSOC)['SUM(price_product)'] ?? 0);
+            $text_marzban = sprintf($textbotlang['Admin']['stats']['panelSales'], $ListSell, $ListSellSUM, $marzban_list_get['agent']);
+            sendmessage($from_id, $text_marzban, $panelOptions['hmpanel'], 'HTML');
+        } elseif (!empty($Check_connection['status']) && $Check_connection['status'] == 401) {
+            sendmessage($from_id, $textbotlang['Admin']['managepanel']['invalidToken'], $panelOptions['hmpanel'], 'HTML');
+        } else {
+            $text_marzban = !empty($Check_connection['error']) ? panelErrorText($Check_connection['error']) : $textbotlang['Admin']['managepanel']['errorStatusPanel'] . json_encode($Check_connection);
+            sendmessage($from_id, $text_marzban, $panelOptions['hmpanel'], 'HTML');
         }
     } else {
         sendmessage($from_id, $textbotlang['Admin']['selectOption2'], $panelOptions['marzban'], 'HTML');
@@ -7069,6 +7090,22 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
         $textsetprotocol = $textbotlang['Admin']['managepanel']['askGroupName'];
     } else {
         $textsetprotocol = $textbotlang['Admin']['managepanel']['askProtocolSetup'];
+        $prompt_panel = select("marzban_panel", "*", "name_panel", $user['Processing_value'], "select");
+        if (!empty($prompt_panel) && ($prompt_panel['type'] ?? '') == "hmpanel") {
+            $textsetprotocol = $textbotlang['Admin']['managepanel']['askInboundId'];
+            $inbounds_result = hmpanel_get_inbounds($prompt_panel);
+            $available_inbounds = hmpanel_decode_inbounds($inbounds_result);
+            if (!empty($available_inbounds)) {
+                $inbound_rows = array();
+                $escape_inbound_text = function ($value) {
+                    return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                };
+                foreach ($available_inbounds as $inbound) {
+                    $inbound_rows[] = $escape_inbound_text($inbound['id'] ?? '') . ' | ' . $escape_inbound_text($inbound['tag'] ?? '') . ' | ' . $escape_inbound_text($inbound['remark'] ?? '') . ' | ' . $escape_inbound_text($inbound['protocol'] ?? '') . ':' . $escape_inbound_text($inbound['port'] ?? '');
+                }
+                $textsetprotocol .= "\n\n" . implode("\n", $inbound_rows);
+            }
+        }
     }
     sendmessage($from_id, $textsetprotocol, $backadmin, 'HTML');
     step("setinboundandprotocol", $from_id);
@@ -7163,6 +7200,24 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
         }
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['protocolSaved'], $panelOptions['x-ui_single'], 'HTML');
         update("marzban_panel", "inbounds", json_encode($data['obj']['inboundIds']), "name_panel", $user['Processing_value']);
+    } elseif ($panel['type'] == "hmpanel") {
+        $inbounds_result = hmpanel_get_inbounds($panel);
+        if (!empty($inbounds_result['error'])) {
+            sendmessage($from_id, panelErrorText($inbounds_result['error']), null, 'HTML');
+            return;
+        }
+        if (!empty($inbounds_result['status']) && $inbounds_result['status'] != 200) {
+            sendmessage($from_id, sprintf($textbotlang['Admin']['managepanel']['ErrorCode'], $inbounds_result['status']), null, 'HTML');
+            return;
+        }
+        $available_inbounds = hmpanel_decode_inbounds($inbounds_result);
+        if (empty($available_inbounds)) {
+            sendmessage($from_id, $textbotlang['Admin']['managepanel']['inboundUnsupported'], $panelOptions['hmpanel'], 'HTML');
+            return;
+        }
+        $inboundIds = hmpanel_select_inbound_ids($available_inbounds, $text);
+        update("marzban_panel", "inbounds", json_encode($inboundIds), "name_panel", $user['Processing_value']);
+        sendmessage($from_id, $textbotlang['Admin']['managepanel']['protocolSaved'], $panelOptions['hmpanel'], 'HTML');
     } elseif ($panel['type'] == "wg_mate") {
         $userdata = getuser_wgmate($text, $user['Processing_value'])['user'];
         if ($userdata === null) {
@@ -7526,6 +7581,23 @@ elseif ($text == $textbotlang['keyboard']['hidePanelForUser'] && $adminrulecheck
             return;
         }
         $datainbound = json_encode($data['obj']['inboundIds']);
+    } elseif ($marzban_list_get['type'] == "hmpanel") {
+        $inbounds_result = hmpanel_get_inbounds($marzban_list_get);
+        if (!empty($inbounds_result['error'])) {
+            sendmessage($from_id, panelErrorText($inbounds_result['error']), null, 'HTML');
+            return;
+        }
+        if (!empty($inbounds_result['status']) && $inbounds_result['status'] != 200) {
+            sendmessage($from_id, sprintf($textbotlang['Admin']['managepanel']['ErrorCode'], $inbounds_result['status']), null, 'HTML');
+            return;
+        }
+        $available_inbounds = hmpanel_decode_inbounds($inbounds_result);
+        if (empty($available_inbounds)) {
+            sendmessage($from_id, $textbotlang['Admin']['managepanel']['inboundUnsupported'], null, 'HTML');
+            return;
+        }
+        $inboundIds = hmpanel_select_inbound_ids($available_inbounds, $text);
+        $datainbound = json_encode($inboundIds);
     } elseif ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik") {
         $datainbound = $text;
     } else {
@@ -8292,7 +8364,7 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
             ['text' => $textbotlang['keyboard']['sendSubLink'], 'callback_data' => "none"],
         ];
     }
-    if (in_array($panel['type'], ['marzban', "x-ui_single", "marzneshin"])) {
+    if (in_array($panel['type'], ['marzban', "x-ui_single", "marzneshin", "hmpanel"])) {
         $Bot_Status['inline_keyboard'][] = [
             ['text' => $statusconnecton, 'callback_data' => "editpanel-connecton-{$panel['conecton']}-{$panel['code_panel']}"],
             ['text' => $textbotlang['keyboard']['firstConnection'], 'callback_data' => "none"],
@@ -8530,7 +8602,7 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
             ['text' => $textbotlang['keyboard']['sendSubLink'], 'callback_data' => "none"],
         ];
     }
-    if (in_array($panel['type'], ['marzban', "x-ui_single", "marzneshin"])) {
+    if (in_array($panel['type'], ['marzban', "x-ui_single", "marzneshin", "hmpanel"])) {
         $Bot_Status['inline_keyboard'][] = [
             ['text' => $statusconnecton, 'callback_data' => "editpanel-connecton-{$panel['conecton']}-{$panel['code_panel']}"],
             ['text' => $textbotlang['keyboard']['firstConnection'], 'callback_data' => "none"],

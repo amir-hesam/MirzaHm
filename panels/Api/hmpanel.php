@@ -29,6 +29,9 @@ function hmpanel_request($panel, $method, $path, $data = null)
             $response = $req->delete(json_encode($data));
         }
         return $response;
+    } elseif (strtoupper($method) === 'PATCH') {
+        $response = $req->PATCH($data === null ? null : json_encode($data));
+        return $response;
     } else {
         if ($data === null) {
             $response = $req->post(array());
@@ -44,6 +47,77 @@ function hmpanel_get_inbounds($panel)
     return hmpanel_request($panel, 'GET', '/v1/inbounds');
 }
 
+function hmpanel_decode_inbounds($response)
+{
+    if (!is_array($response)) {
+        return array();
+    }
+    $body = json_decode($response['body'] ?? '', true);
+    if (!is_array($body)) {
+        return array();
+    }
+    $data = $body['data'] ?? ($body['obj'] ?? $body);
+    if (isset($data['data']) && is_array($data['data'])) {
+        $data = $data['data'];
+    }
+    if (isset($data['obj']) && is_array($data['obj'])) {
+        $data = $data['obj'];
+    }
+    if (isset($data['inbounds']) && is_array($data['inbounds'])) {
+        $data = $data['inbounds'];
+    }
+    if (!is_array($data)) {
+        return array();
+    }
+    $list = array();
+    foreach ($data as $item) {
+        if (is_array($item) && isset($item['id'])) {
+            $list[] = $item;
+        }
+    }
+    return $list;
+}
+
+function hmpanel_inbound_ids($inbounds)
+{
+    $ids = array();
+    foreach ((array)$inbounds as $inbound) {
+        if (is_array($inbound) && isset($inbound['id'])) {
+            $ids[] = $inbound['id'];
+        }
+    }
+    return array_values(array_unique($ids, SORT_REGULAR));
+}
+
+function hmpanel_select_inbound_ids($inbounds, $input = '')
+{
+    $all = hmpanel_inbound_ids($inbounds);
+    $input = trim((string)$input);
+    if ($input === '' || empty($all)) {
+        return $all;
+    }
+    $tokens = preg_split('/[\s,]+/', $input);
+    $matched = array();
+    foreach ($tokens as $token) {
+        if ($token === '') {
+            continue;
+        }
+        foreach ((array)$inbounds as $inbound) {
+            if (!is_array($inbound) || !isset($inbound['id'])) {
+                continue;
+            }
+            $id = (string)$inbound['id'];
+            $tag = (string)($inbound['tag'] ?? '');
+            $remark = (string)($inbound['remark'] ?? '');
+            if ($id === $token || strcasecmp($tag, $token) === 0 || strcasecmp($remark, $token) === 0) {
+                $matched[] = $inbound['id'];
+                break;
+            }
+        }
+    }
+    return empty($matched) ? $all : array_values(array_unique($matched, SORT_REGULAR));
+}
+
 function hmpanel_get_client_by_id($panel, $clientId)
 {
     return hmpanel_request($panel, 'GET', '/v1/clients/' . rawurlencode($clientId));
@@ -54,7 +128,7 @@ function hmpanel_lookup_client($panel, $key)
     return hmpanel_request($panel, 'GET', '/v1/clients/lookup?key=' . rawurlencode($key));
 }
 
-function hmpanel_create_client($panel, $email, $inboundIds = array(), $totalGb = null, $expiryTimeMs = null, $remark = '', $limitIp = null)
+function hmpanel_create_client($panel, $email, $inboundIds = array(), $totalBytes = null, $expiryTimeMs = null, $remark = '', $limitIp = null)
 {
     $body = array();
     if ($email !== '' && $email !== null) {
@@ -63,10 +137,10 @@ function hmpanel_create_client($panel, $email, $inboundIds = array(), $totalGb =
     if (is_array($inboundIds) && !empty($inboundIds)) {
         $body['inboundIds'] = array_values($inboundIds);
     }
-    if ($totalGb === null || $totalGb === '') {
+    if ($totalBytes === null || $totalBytes === '') {
         $body['total'] = 0;
     } else {
-        $body['total'] = intval($totalGb) * 1024 * 1024 * 1024;
+        $body['total'] = intval($totalBytes);
     }
     if ($expiryTimeMs !== null && $expiryTimeMs !== '') {
         $body['expiryTime'] = intval($expiryTimeMs);

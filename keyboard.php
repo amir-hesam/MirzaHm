@@ -1071,6 +1071,7 @@ $panelOptionRows = [
     'x-ui_single' => [['manualCreateConfig'], ['panelName', 'deletePanel'], ['editPassword', 'subLinkDomain'], ['editPanelUrl', 'setProtocolInbound'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], $panelTestRow, ...$panelPriceRows, ['changeLocationPrice'], ...$panelLimitRows],
     'hiddify' => [['manualCreateConfig'], ['panelName', 'deletePanel'], ['editPanelUrl', 'subLinkDomain'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], ['🔗 uuid admin'], $panelTestRow, ...$panelPriceRows, ['changeLocationPrice'], ...$panelLimitRows],
     'WGDashboard' => [['manualCreateConfig'], ['panelName', 'deletePanel'], ['editPassword'], ['editPanelUrl', 'setInboundId'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], $panelTestRow, ...$panelPriceRows, ['changeLocationPrice'], ...$panelLimitRows, ['inboundDeactivate']],
+    'hmpanel' => [['manualCreateConfig'], ['panelName', 'deletePanel'], ['editPassword'], ['editPanelUrl', 'setProtocolInbound'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], $panelTestRow, ...$panelPriceRows, ['changeLocationPrice'], ...$panelLimitRows],
     'rebecca' => [['panelName', 'deletePanel'], ['editPassword'], ['editPanelUrl', 'setProtocolInbound'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], $panelTestRow, ...$panelPriceRows, ['changeLocationPrice'], ...$panelLimitRows, ['inboundDeactivate']],
     'ibsng' => [['panelName', 'deletePanel'], ['editPassword', 'editUsername'], ['editPanelUrl', 'setGroupName'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], ...$panelPriceRows, ...$panelLimitRows],
     'mirza_agent' => [['panelName', 'deletePanel'], ['editPassword'], ['editPanelUrl', 'panelSetting'], ['accountCreateLimit', 'changeUserGroup'], ...$panelPriceRows, ...$panelLimitRows],
@@ -1178,7 +1179,8 @@ $keyboardtypepanel = json_encode([
             ['text' => "Nexora", 'callback_data' => 'typepanel#nexora']
         ],
         [
-            ['text' => "WG-Mate", 'callback_data' => 'typepanel#wg_mate']
+            ['text' => "WG-Mate", 'callback_data' => 'typepanel#wg_mate'],
+            ['text' => "HMPanel", 'callback_data' => 'typepanel#hmpanel']
         ],
         [
             ['text' => $textbotlang['Admin']['backAdminBtn'], 'callback_data' => 'admin']

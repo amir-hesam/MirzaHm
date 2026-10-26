@@ -27,6 +27,23 @@ class HmpanelPanelDriver extends BasePanelDriver
             }
         }
 
+        if (empty($inbounds)) {
+            $inbounds_result = hmpanel_get_inbounds($Get_Data_Panel);
+            if (!empty($inbounds_result['error'])) {
+                return array(
+                    'status' => 'Unsuccessful',
+                    'msg' => $inbounds_result['error']
+                );
+            }
+            if (!empty($inbounds_result['status']) && $inbounds_result['status'] != 200) {
+                return array(
+                    'status' => 'Unsuccessful',
+                    'msg' => $inbounds_result['status']
+                );
+            }
+            $inbounds = hmpanel_inbound_ids(hmpanel_decode_inbounds($inbounds_result));
+        }
+
         $expiryTimeMs = null;
         if ($Get_Data_Product['name_product'] == "usertest") {
             if (isset($Get_Data_Panel['on_hold_test']) && $Get_Data_Panel['on_hold_test'] == "1" && $expire == 0) {
@@ -58,7 +75,8 @@ class HmpanelPanelDriver extends BasePanelDriver
             }
         }
 
-        $res = hmpanel_create_client($Get_Data_Panel, $usernameC, $inbounds, $data_limit, $expiryTimeMs, $note);
+        $totalBytes = intval($data_limit) > 0 ? intval($data_limit) : 0;
+        $res = hmpanel_create_client($Get_Data_Panel, $usernameC, $inbounds, $totalBytes, $expiryTimeMs, $note);
         if (!empty($res['error'])) {
             return array(
                 'status' => 'Unsuccessful',
@@ -442,26 +460,21 @@ class HmpanelPanelDriver extends BasePanelDriver
             return array('status' => false, 'msg' => 'Client not found');
         }
 
-        $expMs = 0;
-        if ($time_new > 0) {
-            $expMs = $time_new * 1000;
-        }
         $body = array();
         if ($data_limit_new !== null && $data_limit_new !== '') {
-            $body['totalGb'] = intval($data_limit_new);
+            $body['total'] = intval($data_limit_new) > 0 ? intval($data_limit_new) : 0;
         }
-        if ($expMs !== 0) {
-            $body['days'] = intval($time_new);
+        if ($time_new !== null && $time_new !== '' && intval($time_new) > 0) {
+            $body['expiryTime'] = intval($time_new) * 1000;
+        } elseif ($time_new !== null && $time_new !== '' && intval($time_new) === 0) {
+            $body['expiryTime'] = 0;
         }
-        if (isset($body['days']) && isset($body['totalGb'])) {
-            $res = hmpanel_renew_client($panel, $clientId, $body['days'], $body['totalGb'], false);
-        } elseif (isset($body['days'])) {
-            $res = hmpanel_renew_client($panel, $clientId, $body['days'], null, false);
-        } elseif (isset($body['totalGb'])) {
-            $res = hmpanel_renew_client($panel, $clientId, 0, $body['totalGb'], false);
-        } else {
-            $res = hmpanel_renew_client($panel, $clientId, $time_new, $data_limit_new, false);
+
+        if (empty($body)) {
+            return array('status' => true, 'data' => $client);
         }
+
+        $res = hmpanel_update_client($panel, $clientId, $body);
 
         if (!empty($res['error']) || (!empty($res['status']) && $res['status'] != 200)) {
             return array('status' => false, 'msg' => $res['error'] ?? $res['status'] ?? 'Error');
@@ -478,7 +491,7 @@ class HmpanelPanelDriver extends BasePanelDriver
         $new_limit = $vars['new_limit'];
         $username_account = $vars['username_account'];
         $panel = $vars['panel'];
-        return $this->extendService(array('data_limit_new' => $new_limit, 'time_new' => 0, 'username' => $username_account, 'panel' => $panel));
+        return $this->extendService(array('data_limit_new' => $new_limit, 'time_new' => null, 'username' => $username_account, 'panel' => $panel));
     }
 
     public function extraTime(array $vars)

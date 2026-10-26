@@ -1626,6 +1626,7 @@ function finishAddPanel()
         "ibsng" => "noteSetGroupNameIbsng",
         "mikrotik" => "noteMikrotikAccounting",
         "hiddify" => "noteSetAdminUuid",
+        "hmpanel" => "noteSetProtocolInbound",
     ];
     if (isset($panelNotes[$panelData['type']])) {
         sendmessage($from_id, $textbotlang['Admin']['managepanel'][$panelNotes[$panelData['type']]], null, 'HTML');

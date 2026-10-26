@@ -213,7 +213,7 @@ function mini_service(array $data, string $method): void
         $used_Traffic = $used_traffic_bytes / pow(1024, 3);
         $remaining_traffic = $remaining_traffic_bytes / pow(1024, 3);
         $config = [];
-        if (in_array($panel['type'], ['marzban', 'marzneshin', 'x-ui_single', 'hiddify'])) {
+        if (in_array($panel['type'], ['marzban', 'marzneshin', 'x-ui_single', 'hiddify', 'hmpanel'])) {
             if ($panel['sublink'] == "onsublink" && !empty($DataUserOut['subscription_url'])) {
                 $config[] = [
                     'type' => "link",
